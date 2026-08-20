@@ -143,7 +143,7 @@ export function CoverflowCarousel({
 
       const startPos = posRef.current;
       const distance = target - startPos;
-      
+
       if (Math.abs(distance) < 0.001) {
         posRef.current = target;
         paint();
@@ -151,14 +151,14 @@ export function CoverflowCarousel({
       }
 
       const startTime = performance.now();
-      // Scale duration slightly with distance, minimum 420ms, max 680ms
-      const duration = Math.min(680, Math.max(420, Math.abs(distance) * 200));
+      // Scaled duration based on jump distance: smooth and responsive
+      const duration = Math.min(650, Math.max(380, Math.abs(distance) * 190));
 
       const step = (now: number) => {
         const elapsed = now - startTime;
         const progress = Math.min(1, elapsed / duration);
-        
-        // Fluid cubic-out easing formula: fast launch, soft deceleration
+
+        // Fluid cubic-out easing formula: fast start, soft deceleration
         const ease = 1 - Math.pow(1 - progress, 3.5);
 
         posRef.current = startPos + distance * ease;
@@ -183,19 +183,20 @@ export function CoverflowCarousel({
     [count, loop],
   );
 
-  // Shortest ring delta navigation for direct card clicks
+  // Shortest ring delta navigation for direct card clicks (e.g. 2nd card to the right/left)
   const goTo = React.useCallback(
     (index: number) => {
-      const currentPos = posRef.current;
-      // Calculate delta modulo count
-      let diff = (index - (currentPos % count)) % count;
-      if (diff > count / 2) diff -= count;
-      if (diff < -count / 2) diff += count;
+      const currentSelected = indexAt(targetRef.current);
+      let offset = index - currentSelected;
+      if (loop) {
+        if (offset > count / 2) offset -= count;
+        if (offset < -count / 2) offset += count;
+      }
 
-      const target = currentPos + diff;
+      const target = targetRef.current + offset;
       settle(clamp(target));
     },
-    [clamp, count, settle],
+    [clamp, count, indexAt, loop, settle],
   );
 
   const nudge = React.useCallback(
@@ -208,7 +209,6 @@ export function CoverflowCarousel({
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
-    targetRef.current = posRef.current;
     dragRef.current = {
       id: event.pointerId,
       startX: event.clientX,
@@ -224,9 +224,11 @@ export function CoverflowCarousel({
     if (!drag || drag.id !== event.pointerId) return;
 
     const dx = event.clientX - drag.startX;
-    if (Math.abs(dx) > 4) {
+    if (Math.abs(dx) > 5) {
       drag.moved = true;
     }
+
+    if (!drag.moved) return;
 
     const pitch = widthRef.current * (1 + gap);
     if (!pitch) return;
@@ -254,8 +256,6 @@ export function CoverflowCarousel({
       // Let a flick carry up to two cards with inertia
       const carried = Math.max(-2, Math.min(2, velocity * 0.18));
       settle(clamp(Math.round(posRef.current + carried)));
-    } else {
-      settle(clamp(Math.round(posRef.current)));
     }
   };
 
@@ -324,8 +324,6 @@ export function CoverflowCarousel({
             }}
           >
             {slides.map((slide, index) => {
-              const isCurrent = index === selected;
-
               return (
                 <div
                   key={index}
@@ -337,13 +335,11 @@ export function CoverflowCarousel({
                   aria-label={`${index + 1} of ${count}`}
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (dragRef.current && dragRef.current.moved) return;
                     goTo(index);
                   }}
                   className={cn(
-                    "absolute left-1/2 top-0 aspect-square overflow-hidden rounded-2xl bg-zinc-900 shadow-2xl will-change-transform cursor-pointer border border-white/10 transition-all duration-300 group",
-                    isCurrent
-                      ? "ring-2 ring-purple-500/40 shadow-[0_0_50px_rgba(168,85,247,0.35)]"
-                      : "hover:border-white/30 hover:brightness-110",
+                    "absolute left-1/2 top-0 aspect-square overflow-hidden rounded-2xl bg-zinc-900 shadow-2xl will-change-transform cursor-pointer border border-white/10 transition-all duration-300 group hover:border-white/30",
                     cardClassName,
                   )}
                   style={{ width: "var(--cf-card)" }}
