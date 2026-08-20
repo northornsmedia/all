@@ -6,7 +6,7 @@ export default function HandwritingDemo() {
   return (
     <div className="flex min-h-[320px] w-full items-center justify-center bg-black p-8 rounded-2xl">
       <HandwritingSvg
-        text="SonicFlow"
+        text="Northon's Media"
         width={380}
         height={160}
         fontSize={72}
