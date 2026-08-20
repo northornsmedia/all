@@ -79,9 +79,10 @@ export function CoverflowCarousel({
   const dragRef = React.useRef<{
     id: number;
     startX: number;
-    pos: number;
+    startPos: number;
+    lastX: number;
+    lastTime: number;
     v: number;
-    t: number;
     moved: boolean;
   } | null>(null);
 
@@ -151,15 +152,15 @@ export function CoverflowCarousel({
       }
 
       const startTime = performance.now();
-      // Scaled duration based on jump distance: smooth and responsive
-      const duration = Math.min(650, Math.max(380, Math.abs(distance) * 190));
+      // Smooth consistent glide duration
+      const duration = Math.min(550, Math.max(360, Math.abs(distance) * 220));
 
       const step = (now: number) => {
         const elapsed = now - startTime;
         const progress = Math.min(1, elapsed / duration);
 
         // Fluid cubic-out easing formula: fast start, soft deceleration
-        const ease = 1 - Math.pow(1 - progress, 3.5);
+        const ease = 1 - Math.pow(1 - progress, 3.2);
 
         posRef.current = startPos + distance * ease;
         paint();
@@ -183,7 +184,7 @@ export function CoverflowCarousel({
     [count, loop],
   );
 
-  // Shortest ring delta navigation for direct card clicks (e.g. 2nd card to the right/left)
+  // Shortest ring delta navigation for direct card clicks (e.g. clicking 2nd card)
   const goTo = React.useCallback(
     (index: number) => {
       const currentSelected = indexAt(targetRef.current);
@@ -209,12 +210,14 @@ export function CoverflowCarousel({
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+    const currentRounded = Math.round(posRef.current);
     dragRef.current = {
       id: event.pointerId,
       startX: event.clientX,
-      pos: posRef.current,
+      startPos: currentRounded,
+      lastX: event.clientX,
+      lastTime: performance.now(),
       v: 0,
-      t: performance.now(),
       moved: false,
     };
   };
@@ -234,14 +237,16 @@ export function CoverflowCarousel({
     if (!pitch) return;
 
     const now = performance.now();
-    const previous = posRef.current;
-    posRef.current = clamp(drag.pos - dx / pitch);
-    // Cards per second, for momentum throw
-    drag.v = ((posRef.current - previous) / Math.max(now - drag.t, 1)) * 1000;
-    drag.t = now;
+    const dt = Math.max(now - drag.lastTime, 1);
+    drag.v = ((event.clientX - drag.lastX) / dt) * 1000;
+    drag.lastX = event.clientX;
+    drag.lastTime = now;
 
-    const index = indexAt(posRef.current);
-    if (index !== selected) updateSelected(index);
+    // Constrain live drag visual offset to max 1 card so it never wildly skips
+    const dragFraction = -dx / pitch;
+    const boundedFraction = Math.max(-1.1, Math.min(1.1, dragFraction));
+    
+    posRef.current = clamp(drag.startPos + boundedFraction);
     paint();
   };
 
@@ -249,13 +254,23 @@ export function CoverflowCarousel({
     const drag = dragRef.current;
     if (!drag || drag.id !== event.pointerId) return;
     const wasMoved = drag.moved;
+    const startBasePos = drag.startPos;
+    const dx = event.clientX - drag.startX;
     const velocity = drag.v;
     dragRef.current = null;
 
     if (wasMoved) {
-      // Let a flick carry up to two cards with inertia
-      const carried = Math.max(-2, Math.min(2, velocity * 0.18));
-      settle(clamp(Math.round(posRef.current + carried)));
+      // STRICT SINGLE-CARD ADVANCE LOGIC:
+      // Always advances by exactly +1, -1, or 0 cards based on swipe direction & threshold
+      let step = 0;
+      if (dx < -30 || velocity < -200) {
+        step = 1; // Dragged left -> advance to next card (+1)
+      } else if (dx > 30 || velocity > 200) {
+        step = -1; // Dragged right -> advance to previous card (-1)
+      }
+
+      const nextTarget = startBasePos + step;
+      settle(clamp(nextTarget));
     }
   };
 
