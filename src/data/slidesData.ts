@@ -109,13 +109,13 @@ export const ALBUM_SLIDES: MediaCardSlide[] = [
     ],
   },
   {
-    src: getWebsiteScreenshot("https://www.womensipalliance.com/admin"),
-    fallbackSrc: "https://image.thum.io/get/width/900/crop/900/https://www.womensipalliance.com/admin",
+    src: getWebsiteScreenshot("https://www.womensipalliance.com/adminwipa"),
+    fallbackSrc: "https://image.thum.io/get/width/900/crop/900/https://www.womensipalliance.com/adminwipa",
     alt: "Women's IP Alliance Landing Admin Thumbnail",
     title: "Women's IP Alliance Landing Admin",
-    subtitle: "womensipalliance.com/admin",
-    website: "womensipalliance.com/admin",
-    url: "https://www.womensipalliance.com/admin",
+    subtitle: "womensipalliance.com/adminwipa",
+    website: "womensipalliance.com/adminwipa",
+    url: "https://www.womensipalliance.com/adminwipa",
     color: "#f43f5e",
     meta: [
       { label: "Platform", value: "Admin Portal" },

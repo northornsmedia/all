@@ -19,7 +19,7 @@ An ultra-modern, full-screen 3D Coverflow showcase portal for Northon's Media an
 5. **Women's IP Alliance Landing** — `https://www.womensipalliance.com/`
 6. **WIPA Platform Landing** — `https://wipanorthon.vercel.app/`
 7. **WIPA Platform Admin** — `https://hieadminbucket.womensipalliance.com/`
-8. **Women's IP Alliance Landing Admin** — `https://www.womensipalliance.com/admin`
+8. **Women's IP Alliance Landing Admin** — `https://www.womensipalliance.com/adminwipa`
 
 ## 🛠️ Getting Started
 
